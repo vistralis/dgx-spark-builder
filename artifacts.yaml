@@ -1,0 +1,47 @@
+# Wheel build matrix — defines what to build and from which base images.
+# Run with: ./build_artifacts.py [--dry-run] [--filter-image ubuntu*] [--filter-package onnxruntime]
+
+base_images:
+  - tag: "nvcr.io/nvidia/pytorch:25.11-py3"
+    output_dir: "ngc-25.11-py3"
+  - tag: "nvcr.io/nvidia/pytorch:26.01-py3"
+    output_dir: "ngc-26.01-py3"
+  - tag: "ubuntu2404-pt210-cu130"
+    output_dir: "pip-pt210-cu130"
+    local: true                  # Must be built first (dockerfiles/base/)
+
+packages:
+  onnxruntime:
+    version: "main"              # branch, tag, or commit hash
+    version_arg: ORT_VERSION
+    enabled: true
+
+  bitsandbytes:
+    version: "main"
+    version_arg: BNB_VERSION
+    enabled: true
+
+  sageattention:
+    version: "blackwell-sm121"
+    version_arg: SAGE_VERSION
+    enabled: true
+
+  flash-attention:
+    version: "v2.8.3"
+    version_arg: FLASH_ATTN_VERSION
+    enabled: true
+
+  xformers:
+    version: "main"
+    version_arg: XFORMERS_VERSION
+    enabled: false               # SM 121 compile issues — re-enable when fixed
+
+  torchao:
+    version: "main"
+    version_arg: TORCHAO_VERSION
+    enabled: false               # SM 121 compile issues — re-enable when fixed
+
+  vllm:
+    version: "v0.16.0"
+    version_arg: VLLM_VERSION
+    enabled: true
