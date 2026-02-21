@@ -26,7 +26,7 @@ RUN ./build.sh \
     --nvcc_threads 20 \
     --allow_running_as_root \
     --use_cuda \
-    --cuda_version $(nvcc --version | grep -oP 'release \K[0-9]+') \
+    --cuda_version $(nvcc --version | grep -oP 'release \K[0-9]+\.[0-9]+') \
     --cuda_home ${CUDA_HOME} \
     --cudnn_home ${CUDA_HOME} \
     --use_tensorrt \

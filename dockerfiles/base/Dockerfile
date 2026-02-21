@@ -11,7 +11,12 @@
 #
 # This image uses:
 #   - nvidia/cuda cudnn-devel image (CUDA 13.0, Ubuntu 24.04, aarch64)
+#   - TensorRT 10.14 + cuSPARSELt + upgraded cuDNN/cuBLAS/NCCL
 #   - PyTorch built from source (or installed from pip wheel)
+#
+# This is intended as a drop-in replacement for NGC pytorch images,
+# providing a clean pip-based build environment with the full NVIDIA
+# inference stack.
 #
 # Usage (pip wheel — fast, default):
 #   docker build -t cuda13.0-torch2.10-ubuntu24.04 dockerfiles/base/
@@ -45,6 +50,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -sf /usr/bin/python3 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/*
 
+# ── NVIDIA inference stack ────────────────────────────────────────
+# TensorRT + cuSPARSELt + upgrade cuDNN/cuBLAS/NCCL/nvjitlink
+# Pin TensorRT to cuda13.0 version matching our CUDA toolkit
+ARG TENSORRT_VERSION=10.14.1.48-1+cuda13.0
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tensorrt-dev=${TENSORRT_VERSION} \
+    libcusparselt0-dev-cuda-13 \
+    && apt-get upgrade -y --no-install-recommends \
+    libcudnn9-cuda-13 libcudnn9-dev-cuda-13 \
+    libcublas-13-0 libcublas-dev-13-0 \
+    libnccl2 libnccl-dev \
+    libnvjitlink-13-0 libnvjitlink-dev-13-0 \
+    && rm -rf /var/lib/apt/lists/*
+
 # ── Install uv ────────────────────────────────────────────────────
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
     && ln -sf /root/.local/bin/uv /usr/local/bin/uv
@@ -55,7 +74,11 @@ RUN uv venv ${VIRTUAL_ENV} --python python${PYTHON_VERSION}
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 # ── Install build tools ──────────────────────────────────────────
-RUN uv pip install pip setuptools wheel scikit-build ninja 'cmake<4'
+RUN uv pip install pip setuptools wheel scikit-build ninja 'cmake<4' numpy
+
+# ── Install TensorRT Python bindings ─────────────────────────────
+# apt tensorrt-dev provides C headers/libs; pip provides Python API
+RUN uv pip install tensorrt==10.14.1.48
 
 # ── Install or build PyTorch ──────────────────────────────────────
 #
@@ -107,6 +130,8 @@ ENV MAX_JOBS=20
 ENV TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}
 
 # Verify installation
-RUN python -c "import torch; print(f'PyTorch {torch.__version__} CUDA {torch.version.cuda}')"
+RUN python -c "import torch; print(f'PyTorch {torch.__version__} CUDA {torch.version.cuda}'); \
+    import tensorrt; print(f'TensorRT {tensorrt.__version__}'); \
+    import numpy; print(f'NumPy {numpy.__version__}')"
 
 WORKDIR /opt
