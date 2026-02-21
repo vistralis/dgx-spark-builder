@@ -1,19 +1,13 @@
 # ComfyUI + Qwen3-TTS on DGX Spark (Blackwell, SM 121)
 #
-# Layered on top of the base ComfyUI image, adds the
+# Layered on top of the published ComfyUI image, adds the
 # flybirdxx/ComfyUI-Qwen-TTS custom node and its dependencies.
 #
 # Usage:
-#   # 1. Build base comfyui image first
-#   docker build -f dockerfiles/comfyui/Dockerfile \
-#       --build-context wheels=wheels/pip-torch2.10-cu130 \
-#       -t comfyui-spark .
-#
-#   # 2. Build qwen-tts specialization
 #   docker build -f dockerfiles/comfyui-qwen-tts/Dockerfile \
 #       -t comfyui-spark:qwen-tts .
 #
-ARG BASE_IMAGE=comfyui-spark
+ARG BASE_IMAGE=vistralis/comfyui:cuda13.0-torch2.10-ubuntu24.04
 FROM ${BASE_IMAGE}
 
 # ── Qwen-TTS Python dependencies ─────────────────────────────────
