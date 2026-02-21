@@ -36,10 +36,10 @@ WORKDIR /opt/comfyui
 RUN uv pip install -r requirements.txt
 
 # ── Pre-built ABI-matched wheels (explicit, by name) ─────────────
-COPY wheels/sageattention-*.whl /tmp/wheels/
-COPY wheels/bitsandbytes-*.whl /tmp/wheels/
-COPY wheels/flash_attn-*.whl /tmp/wheels/
-COPY wheels/onnxruntime_gpu-*.whl /tmp/wheels/
+COPY --from=wheels sageattention-*.whl /tmp/wheels/
+COPY --from=wheels bitsandbytes-*.whl /tmp/wheels/
+COPY --from=wheels flash_attn-*.whl /tmp/wheels/
+COPY --from=wheels onnxruntime_gpu-*.whl /tmp/wheels/
 RUN uv pip install /tmp/wheels/*.whl && rm -rf /tmp/wheels
 
 # ── Runtime config ────────────────────────────────────────────────
