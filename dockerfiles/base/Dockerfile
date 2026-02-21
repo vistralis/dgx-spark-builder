@@ -80,8 +80,9 @@ ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 RUN uv pip install pip setuptools wheel scikit-build ninja 'cmake<4' numpy
 
 # ── Install TensorRT Python bindings ─────────────────────────────
-# apt tensorrt-dev provides C headers/libs; pip provides Python API
-RUN uv pip install tensorrt==10.14.1.48
+# apt tensorrt-dev provides C headers/libs; pip provides Python API.
+# Only install bindings — the libs are already present from apt.
+RUN uv pip install tensorrt-cu13-bindings==10.14.1.48
 
 # ── Install or build PyTorch ──────────────────────────────────────
 #
