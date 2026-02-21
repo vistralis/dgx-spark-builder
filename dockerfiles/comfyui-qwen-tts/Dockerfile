@@ -35,11 +35,28 @@ RUN uv pip install \
     safetensors \
     "scipy>=1.11.0"
 
-# ── Install Qwen-TTS custom node ─────────────────────────────────
-ARG QWEN_TTS_REPO=https://github.com/flybirdxx/ComfyUI-Qwen-TTS.git
-ARG QWEN_TTS_VERSION=main
-RUN git clone --depth=1 --branch ${QWEN_TTS_VERSION} \
-    ${QWEN_TTS_REPO} /opt/comfyui/custom_nodes/ComfyUI-Qwen-TTS
+# ── Custom nodes (pinned to known-good commits) ──────────────────
+# Qwen3-TTS (flybirdxx) — voice synthesis & cloning
+ARG QWEN_TTS_COMMIT=17207f8b9d1e2e92cb5cf0e487222656757bedf5
+RUN git clone https://github.com/flybirdxx/ComfyUI-Qwen-TTS.git \
+    /opt/comfyui/custom_nodes/ComfyUI-Qwen-TTS \
+    && cd /opt/comfyui/custom_nodes/ComfyUI-Qwen-TTS \
+    && git checkout ${QWEN_TTS_COMMIT}
+
+# Custom-Scripts (pythongosssss) — ShowText, MarkdownNote, etc.
+ARG CUSTOM_SCRIPTS_COMMIT=609f3afaa74b2f88ef9ce8d939626065e3247469
+RUN git clone https://github.com/pythongosssss/ComfyUI-Custom-Scripts.git \
+    /opt/comfyui/custom_nodes/ComfyUI-Custom-Scripts \
+    && cd /opt/comfyui/custom_nodes/ComfyUI-Custom-Scripts \
+    && git checkout ${CUSTOM_SCRIPTS_COMMIT}
+
+# LayerStyle (chflame163) — PurgeVRAM, layer utilities
+ARG LAYER_STYLE_COMMIT=d94bef1ee5ed3656f5ff1bb2830a4ffd94f40935
+RUN git clone https://github.com/chflame163/ComfyUI_LayerStyle.git \
+    /opt/comfyui/custom_nodes/ComfyUI_LayerStyle \
+    && cd /opt/comfyui/custom_nodes/ComfyUI_LayerStyle \
+    && git checkout ${LAYER_STYLE_COMMIT} \
+    && uv pip install -r requirements.txt
 
 # ── Runtime config ────────────────────────────────────────────────
 EXPOSE 8188
