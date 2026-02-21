@@ -33,10 +33,7 @@ RUN git clone https://github.com/vistralis/SageAttention.git \
     && cd SageAttention && git checkout ${SAGE_VERSION}
 
 WORKDIR /opt/SageAttention
-RUN pip wheel . --no-build-isolation --no-deps --wheel-dir /wheels \
-    --break-system-packages 2>&1 \
-    || python -m pip wheel . --no-build-isolation --no-deps --wheel-dir /wheels \
-    --break-system-packages
+RUN pip wheel . --no-build-isolation --no-deps --wheel-dir /wheels
 
 FROM scratch
 COPY --from=builder /wheels/ /

@@ -55,7 +55,7 @@ RUN uv venv ${VIRTUAL_ENV} --python python${PYTHON_VERSION}
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 # ── Install build tools ──────────────────────────────────────────
-RUN uv pip install setuptools wheel scikit-build ninja 'cmake<4'
+RUN uv pip install pip setuptools wheel scikit-build ninja 'cmake<4'
 
 # ── Install or build PyTorch ──────────────────────────────────────
 #

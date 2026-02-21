@@ -55,7 +55,11 @@ for arg in "$@"; do
             ;;
     esac
 done
-set -- "${POSITIONAL[@]:-}"
+if [ ${#POSITIONAL[@]} -gt 0 ]; then
+    set -- "${POSITIONAL[@]}"
+else
+    set --
+fi
 
 # ── Promote mode ──────────────────────────────────────────────────
 if [[ -n "$PROMOTE" && "$PROMOTE" != "__NEXT__" ]]; then
