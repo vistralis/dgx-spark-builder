@@ -17,11 +17,13 @@ ARG BASE_IMAGE=comfyui-spark
 FROM ${BASE_IMAGE}
 
 # ── Qwen-TTS Python dependencies ─────────────────────────────────
-# All pip-installable on aarch64; onnxruntime-gpu comes from base image
+# Pin transformers==4.57.3 — v5.x has breaking config changes that
+# cause 'pad_token_id' AttributeError. See:
+# https://github.com/flybirdxx/ComfyUI-Qwen-TTS/issues/74
 RUN uv pip install \
     torchaudio --index-url https://download.pytorch.org/whl/cu130 \
     && uv pip install \
-    "transformers>=4.57.0" \
+    "transformers==4.57.3" \
     librosa \
     soundfile \
     accelerate \
@@ -38,13 +40,6 @@ ARG QWEN_TTS_REPO=https://github.com/flybirdxx/ComfyUI-Qwen-TTS.git
 ARG QWEN_TTS_VERSION=main
 RUN git clone --depth=1 --branch ${QWEN_TTS_VERSION} \
     ${QWEN_TTS_REPO} /opt/comfyui/custom_nodes/ComfyUI-Qwen-TTS
-
-# ── Patch: remove dead import not in any released transformers ────
-# check_model_inputs was from an internal Qwen fork of transformers,
-# never made it to PyPI. It's imported but never used in the code.
-# See: https://github.com/flybirdxx/ComfyUI-Qwen-TTS/issues/24
-RUN sed -i '/from transformers.utils.generic import check_model_inputs/d' \
-    /opt/comfyui/custom_nodes/ComfyUI-Qwen-TTS/qwen_tts/core/tokenizer_12hz/modeling_qwen3_tts_tokenizer_v2.py
 
 # ── Runtime config ────────────────────────────────────────────────
 EXPOSE 8188
