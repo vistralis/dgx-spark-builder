@@ -39,6 +39,13 @@ ARG QWEN_TTS_VERSION=main
 RUN git clone --depth=1 --branch ${QWEN_TTS_VERSION} \
     ${QWEN_TTS_REPO} /opt/comfyui/custom_nodes/ComfyUI-Qwen-TTS
 
+# ── Patch: remove dead import not in any released transformers ────
+# check_model_inputs was from an internal Qwen fork of transformers,
+# never made it to PyPI. It's imported but never used in the code.
+# See: https://github.com/flybirdxx/ComfyUI-Qwen-TTS/issues/24
+RUN sed -i '/from transformers.utils.generic import check_model_inputs/d' \
+    /opt/comfyui/custom_nodes/ComfyUI-Qwen-TTS/qwen_tts/core/tokenizer_12hz/modeling_qwen3_tts_tokenizer_v2.py
+
 # ── Runtime config ────────────────────────────────────────────────
 EXPOSE 8188
 CMD ["python", "main.py", "--listen", "0.0.0.0", "--port", "8188"]
