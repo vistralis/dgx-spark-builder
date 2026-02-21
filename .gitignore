@@ -1,0 +1,26 @@
+# Wheels (published via GitHub Releases, not committed)
+wheels/
+!wheels/.gitkeep
+
+# Docker build artifacts
+*.dockerenv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
