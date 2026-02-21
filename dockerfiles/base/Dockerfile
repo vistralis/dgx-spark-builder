@@ -60,7 +60,7 @@ RUN printf 'Package: libnvinfer* libnvonnxparsers* tensorrt*\nPin: version *+cud
     && apt-get update && apt-get install -y --no-install-recommends \
     tensorrt-dev=${TENSORRT_VERSION} \
     libcusparselt0-dev-cuda-13 \
-    && apt-get upgrade -y --no-install-recommends \
+    && apt-get upgrade -y --allow-change-held-packages --no-install-recommends \
     libcudnn9-cuda-13 libcudnn9-dev-cuda-13 \
     libcublas-13-0 libcublas-dev-13-0 \
     libnccl2 libnccl-dev \
