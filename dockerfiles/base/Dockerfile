@@ -79,10 +79,6 @@ ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 # ── Install build tools ──────────────────────────────────────────
 RUN uv pip install pip setuptools wheel scikit-build ninja 'cmake<4' numpy
 
-# ── Install TensorRT Python bindings ─────────────────────────────
-# apt tensorrt-dev provides C headers/libs; pip provides Python API.
-# Only install bindings — the libs are already present from apt.
-RUN uv pip install tensorrt-cu13-bindings==10.14.1.48
 
 # ── Install or build PyTorch ──────────────────────────────────────
 #
@@ -135,7 +131,7 @@ ENV TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}
 
 # Verify installation
 RUN python -c "import torch; print(f'PyTorch {torch.__version__} CUDA {torch.version.cuda}'); \
-    import tensorrt; print(f'TensorRT {tensorrt.__version__}'); \
-    import numpy; print(f'NumPy {numpy.__version__}')"
+    import numpy; print(f'NumPy {numpy.__version__}')" \
+    && ls /usr/lib/aarch64-linux-gnu/libnvinfer.so && echo 'TensorRT libs OK'
 
 WORKDIR /opt
