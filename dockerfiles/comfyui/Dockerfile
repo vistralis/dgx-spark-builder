@@ -39,6 +39,7 @@ RUN uv pip install -r requirements.txt
 COPY wheels/sageattention-*.whl /tmp/wheels/
 COPY wheels/bitsandbytes-*.whl /tmp/wheels/
 COPY wheels/flash_attn-*.whl /tmp/wheels/
+COPY wheels/onnxruntime_gpu-*.whl /tmp/wheels/
 RUN uv pip install /tmp/wheels/*.whl && rm -rf /tmp/wheels
 
 # ── Runtime config ────────────────────────────────────────────────
