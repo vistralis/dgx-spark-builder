@@ -10,7 +10,7 @@
 # Extract wheel:
 #   docker run --rm -v $(pwd)/wheels/staging:/out vllm-builder sh -c 'cp /*.whl /out/'
 #
-ARG BASE_IMAGE=ubuntu2404-pt210-cu130
+ARG BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04
 FROM ${BASE_IMAGE} AS builder
 
 ARG VLLM_VERSION=v0.16.0

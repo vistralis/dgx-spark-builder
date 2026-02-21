@@ -14,14 +14,14 @@
 #   - PyTorch built from source (or installed from pip wheel)
 #
 # Usage (pip wheel — fast, default):
-#   docker build -t ubuntu2404-pt210-cu130 dockerfiles/base/
+#   docker build -t cuda13.0-torch2.10-ubuntu24.04 dockerfiles/base/
 #
 # Usage (from source — slow but guaranteed ABI match):
 #   docker build --build-arg FORCE_BUILD=on \
-#                -t ubuntu2404-pt210-cu130 dockerfiles/base/
+#                -t cuda13.0-torch2.10-ubuntu24.04 dockerfiles/base/
 #
 # Then reference in extension Dockerfiles:
-#   FROM ubuntu2404-pt210-cu130 AS builder
+#   FROM cuda13.0-torch2.10-ubuntu24.04 AS builder
 # ─────────────────────────────────────────────────────────────────
 ARG CUDA_VERSION=13.0.0
 ARG UBUNTU_VERSION=24.04

@@ -4,8 +4,8 @@
 # deliver ~2x speedup over SDPA for diffusion transformers.
 #
 # Usage (with ABI-matched base — recommended):
-#   docker build -t ubuntu2404-pt210-cu130 dockerfiles/base/
-#   docker build --build-arg BASE_IMAGE=ubuntu2404-pt210-cu130 \
+#   docker build -t cuda13.0-torch2.10-ubuntu24.04 dockerfiles/base/
+#   docker build --build-arg BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04 \
 #                -t sage-builder dockerfiles/sageattention/
 #
 # Usage (with NGC base — may cause ABI mismatch):
@@ -14,7 +14,7 @@
 # Extract wheel:
 #   docker run --rm -v $(pwd)/wheels/staging:/out sage-builder sh -c 'cp /*.whl /out/'
 #
-ARG BASE_IMAGE=ubuntu2404-pt210-cu130
+ARG BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04
 FROM ${BASE_IMAGE} AS builder
 
 ARG SAGE_VERSION=blackwell-sm121

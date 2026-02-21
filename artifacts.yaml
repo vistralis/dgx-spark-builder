@@ -1,13 +1,13 @@
 # Wheel build matrix — defines what to build and from which base images.
-# Run with: ./build_artifacts.py [--dry-run] [--filter-image ubuntu*] [--filter-package onnxruntime]
+# Run with: ./build_artifacts.py [--dry-run] [--filter-image cuda*] [--filter-package onnxruntime]
 
 base_images:
   - tag: "nvcr.io/nvidia/pytorch:25.11-py3"
     output_dir: "ngc-25.11-py3"
   - tag: "nvcr.io/nvidia/pytorch:26.01-py3"
     output_dir: "ngc-26.01-py3"
-  - tag: "ubuntu2404-pt210-cu130"
-    output_dir: "pip-pt210-cu130"
+  - tag: "cuda13.0-torch2.10-ubuntu24.04"
+    output_dir: "pip-torch2.10-cu130"
     local: true                  # Must be built first (dockerfiles/base/)
 
 packages:

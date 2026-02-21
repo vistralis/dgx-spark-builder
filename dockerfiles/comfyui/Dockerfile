@@ -4,17 +4,17 @@
 #
 # Usage:
 #   # 1. Build the base image first
-#   docker build -t ubuntu2404-pt210-cu130 dockerfiles/base/
+#   docker build -t cuda13.0-torch2.10-ubuntu24.04 dockerfiles/base/
 #
 #   # 2. Build wheels for base
-#   BASE_IMAGE=ubuntu2404-pt210-cu130 ./build_wheels.sh --staging sageattention bitsandbytes flash-attention
-#   ./build_wheels.sh --promote pip-pt210-cu130
+#   BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04 ./build_wheels.sh --staging sageattention bitsandbytes flash-attention
+#   ./build_wheels.sh --promote pip-torch2.10-cu130
 #
 #   # 3. Build ComfyUI
 #   docker build -f dockerfiles/comfyui/Dockerfile \
-#       --build-context wheels=wheels/pip-pt210-cu130 .
+#       --build-context wheels=wheels/pip-torch2.10-cu130 .
 #
-ARG BASE_IMAGE=ubuntu2404-pt210-cu130
+ARG BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04
 FROM ${BASE_IMAGE}
 
 # ── System deps ───────────────────────────────────────────────────
@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN uv pip install torchaudio torchvision \
     --index-url https://download.pytorch.org/whl/cu130
 
-# ── ComfyUI from source ───────────────────────────────────────────
+# ── ComfyUI from source ──────────────────────────────────────────
 ARG COMFYUI_VERSION=master
 RUN git clone --depth=1 --branch ${COMFYUI_VERSION} \
     https://github.com/comfyanonymous/ComfyUI.git /opt/comfyui
