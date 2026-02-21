@@ -52,9 +52,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # ── NVIDIA inference stack ────────────────────────────────────────
 # TensorRT + cuSPARSELt + upgrade cuDNN/cuBLAS/NCCL/nvjitlink
-# Pin TensorRT to cuda13.0 version matching our CUDA toolkit
+# Pin TensorRT to cuda13.0 version matching our CUDA toolkit.
+# The NVIDIA repo also has cuda13.1 builds; pin to avoid conflicts.
 ARG TENSORRT_VERSION=10.14.1.48-1+cuda13.0
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN printf 'Package: libnvinfer* libnvonnxparsers* tensorrt*\nPin: version *+cuda13.0\nPin-Priority: 1001\n' \
+    > /etc/apt/preferences.d/tensorrt-cuda13 \
+    && apt-get update && apt-get install -y --no-install-recommends \
     tensorrt-dev=${TENSORRT_VERSION} \
     libcusparselt0-dev-cuda-13 \
     && apt-get upgrade -y --no-install-recommends \
