@@ -9,11 +9,11 @@
 #
 # Staging mode (build to staging/, then promote):
 #   ./build_wheels.sh --staging sageattention   # build to staging/
-#   ./build_wheels.sh --promote pip-pt210-cu130 # move staging → target
+#   ./build_wheels.sh --promote pip-torch2.10-cu130 # move staging → target
 #
 # Base image (determines PyTorch + CUDA version):
 #   BASE_IMAGE=nvcr.io/nvidia/pytorch:26.01-py3 ./build_wheels.sh
-#   BASE_IMAGE=ubuntu2404-pt210-cu130 ./build_wheels.sh
+#   BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04 ./build_wheels.sh
 #
 # Version pinning:
 #   ORT_VERSION=v1.21.0 ./build_wheels.sh onnxruntime
@@ -29,7 +29,7 @@
 #   ├── staging/                    # temp build output (--staging)
 #   ├── ngc-25.11-py3/              # wheels built on NGC 25.11
 #   ├── ngc-26.01-py3/              # wheels built on NGC 26.01
-#   └── pip-pt210-cu130/            # wheels built on custom base
+#   └── pip-torch2.10-cu130/        # wheels built on custom base
 
 set -euo pipefail
 
@@ -87,7 +87,7 @@ BASE_IMAGE="${BASE_IMAGE:-nvcr.io/nvidia/pytorch:25.11-py3}"
 
 # Extract the tag portion for output directory naming
 # Handle both "nvcr.io/nvidia/pytorch:25.11-py3" → "25.11-py3"
-# and local names like "ubuntu2404-pt210-cu130" → "ubuntu2404-pt210-cu130"
+# and local names like "cuda13.0-torch2.10-ubuntu24.04"
 if [[ "$BASE_IMAGE" == *":"* ]]; then
     IMAGE_TAG="${BASE_IMAGE##*:}"
 else
@@ -96,10 +96,10 @@ fi
 
 # Map IMAGE_TAG to output directory
 case "$IMAGE_TAG" in
-    25.11-py3)              OUTPUT_DIR="ngc-25.11-py3" ;;
-    26.01-py3)              OUTPUT_DIR="ngc-26.01-py3" ;;
-    ubuntu2404-pt210-cu130) OUTPUT_DIR="pip-pt210-cu130" ;;
-    *)                      OUTPUT_DIR="${IMAGE_TAG}" ;;
+    25.11-py3)                        OUTPUT_DIR="ngc-25.11-py3" ;;
+    26.01-py3)                        OUTPUT_DIR="ngc-26.01-py3" ;;
+    cuda13.0-torch2.10-ubuntu24.04)   OUTPUT_DIR="pip-torch2.10-cu130" ;;
+    *)                                OUTPUT_DIR="${IMAGE_TAG}" ;;
 esac
 
 # Default versions (override via env vars)

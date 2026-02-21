@@ -24,82 +24,6 @@ on the DGX SPARK GB10 (Blackwell, SM 121, aarch64).
 | **vllm** | 25.11-py3 | 13.0 | — | ✅ | ✅ | — | 3.12 | LLM serving (vLLM engine) |
 | **vllm** | 26.01-py3 | 13.1 | — | ✅ | ✅ | — | 3.12 | LLM serving (vLLM engine) |
 
-> [!NOTE]
-> **ORT** = ONNX Runtime GPU. None of the NGC images ship it pre-installed.
-> We build our own `onnxruntime_gpu-1.25.0` wheel (see `wheels/`).
-
----
-
-## Detailed Breakdown
-
-### 🔷 PyTorch (`nvcr.io/nvidia/pytorch`)
-
-Our primary base image for training and inference.
-
-| Package | 25.11-py3 | 26.01-py3 |
-|---------|-----------|-----------|
-| PyTorch | 2.10.0a0+nv25.11 | 2.10.0a0+nv26.01 |
-| CUDA | 13.0 | 13.1 |
-| TensorRT | 10.14.1.48 | 10.14.1.48 |
-| torch_tensorrt | ✅ (2.10.0a0) | ✅ (2.10.0a0) |
-| triton | 3.5.0 | 3.5.0 |
-| torchao | 0.14.0+git | 0.14.0+git |
-| nvidia-modelopt | 0.37.0 | 0.37.0 |
-| ONNX | 1.18.0 | 1.18.0 |
-| cuDNN | 9.x | 9.x |
-| NCCL | ✅ | ✅ |
-| xformers | ❌ | ❌ |
-| diffusers | ❌ (install from git) | ❌ (install from git) |
-| transformers | ❌ (pip install) | ❌ (pip install) |
-| onnxruntime | ❌ (use custom wheel) | ❌ (use custom wheel) |
-
-**Pros**: Batteries-included for training + inference. Has torch_tensorrt, triton, modelopt.
-**Cons**: Large (~20 GB). No ORT or diffusers pre-installed. `torch.compile` has SM 121 issues.
-
----
-
-### 🟢 TensorRT (`nvcr.io/nvidia/tensorrt`)
-
-Lean inference-focused image with TensorRT and basic Python.
-
-**Pros**: Half the size of PyTorch image. Good for pure TensorRT engine inference.
-**Cons**: No PyTorch, no ML frameworks. Must build/install everything on top.
-
----
-
-### 🟡 CUDA DL Base (`nvcr.io/nvidia/cuda-dl-base`)
-
-Bare CUDA + system libraries. No Python. Use as a build base.
-
-> [!TIP]
-> The 26.01 **inference** variants are significantly smaller (5.2 GB devel vs 9.4 GB).
-> These are ideal for building optimized inference-only containers.
-
----
-
-### 🟣 vLLM (`nvcr.io/nvidia/vllm`)
-
-Optimized LLM serving with vLLM engine.
-
-**Use case**: LLM inference serving with OpenAI-compatible API, continuous batching,
-PagedAttention. Not suitable for image generation (diffusion) workloads.
-
----
-
-## Host Compatibility Notes
-
-| Aspect | 25.11 images | 26.01 images |
-|--------|-------------|-------------|
-| CUDA version | 13.0 | 13.1 |
-| Driver compat | ✅ Native match | ⚠️ Forward-compat |
-| PyTorch | 2.10.0a0 | 2.10.0a0 (same) |
-| torch.compile | ❌ SM 121 bug | ❌ SM 121 bug (same) |
-
-> [!CAUTION]
-> Both 25.11 and 26.01 ship the **same PyTorch 2.10.0a0**. The `torch.compile`
-> `KernelMetadata` crash and `torch_tensorrt` failures are **PyTorch bugs**, not
-> CUDA version issues. These will likely be fixed in a future NGC release with PyTorch 2.11+.
-
 ---
 
 ## Choosing an Image
@@ -112,7 +36,12 @@ PagedAttention. Not suitable for image generation (diffusion) workloads.
 | **TensorRT engine inference** | `tensorrt:26.01-py3` |
 | **Custom lean inference** | `cuda-dl-base:26.01-inference-devel` |
 | **Minimal production deploy** | `cuda-dl-base:26.01-inference-runtime` |
-| **ComfyUI / pip-based stack** | `ubuntu2404-pt210-cu130` (custom base) |
+| **ComfyUI / pip-based stack** | `cuda13.0-torch2.10-ubuntu24.04` (custom base) |
+
+> [!CAUTION]
+> Both 25.11 and 26.01 ship the **same PyTorch 2.10.0a0**. The `torch.compile`
+> `KernelMetadata` crash and `torch_tensorrt` failures are **PyTorch bugs**, not
+> CUDA version issues. Fixed in PyTorch 2.11+.
 
 ---
 

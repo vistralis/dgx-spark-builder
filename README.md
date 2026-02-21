@@ -12,7 +12,7 @@ We develop, train, finetune, optimize, and deploy ML models for **physical AI** 
 
 Our core stack: **PyTorch → ModelOpt → TensorRT → Triton Inference Server**
 
-This repo provides the build infrastructure to make that stack work on the DGX Spark's unique aarch64 + Blackwell (SM 121) platform, where most ML ecosystem packages lack prebuilt wheels.
+This repo provides the build infrastructure to make that stack work on the DGX Spark’s unique aarch64 + Blackwell (SM 121) platform, where most ML ecosystem packages lack prebuilt wheels.
 
 ## Hardware Target
 
@@ -48,17 +48,17 @@ This repo provides the build infrastructure to make that stack work on the DGX S
 
 ```bash
 # 1. Build the ABI-matched PyTorch base image
-docker build -t ubuntu2404-pt210-cu130 dockerfiles/base/
+docker build -t cuda13.0-torch2.10-ubuntu24.04 dockerfiles/base/
 
 # 2. Build wheels (to staging first)
-BASE_IMAGE=ubuntu2404-pt210-cu130 ./build_wheels.sh --staging sageattention bitsandbytes
+BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04 ./build_wheels.sh --staging sageattention bitsandbytes
 
 # 3. Verify, then promote
-./build_wheels.sh --promote pip-pt210-cu130
+./build_wheels.sh --promote pip-torch2.10-cu130
 
 # 4. Build an application image
 docker build -f dockerfiles/comfyui/Dockerfile \
-    --build-context wheels=wheels/pip-pt210-cu130 .
+    --build-context wheels=wheels/pip-torch2.10-cu130 .
 ```
 
 ## Three Base Image Targets
@@ -67,7 +67,7 @@ docker build -f dockerfiles/comfyui/Dockerfile \
 |--------|-----|----------|
 | **NGC PyTorch 25.11** | `nvcr.io/nvidia/pytorch:25.11-py3` | Matches host driver, batteries-included |
 | **NGC PyTorch 26.01** | `nvcr.io/nvidia/pytorch:26.01-py3` | Latest NGC, forward-compat drivers |
-| **Custom pip base** | `ubuntu2404-pt210-cu130` | Lean, ABI-clean pip-installed PyTorch |
+| **Custom pip base** | `cuda13.0-torch2.10-ubuntu24.04` | Lean, ABI-clean pip-installed PyTorch |
 
 > [!WARNING]
 > Wheels built on NGC images are **NOT** compatible with the custom pip base
