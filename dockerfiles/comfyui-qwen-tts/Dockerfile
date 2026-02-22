@@ -19,6 +19,8 @@ FROM ${BASE_IMAGE}
 # ── Python dependencies ───────────────────────────────────────────
 # Install BEFORE qwen-tts so that the base image's custom
 # bitsandbytes (CUDA 13.0) is not overwritten by PyPI.
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 RUN uv pip install \
     torchaudio --index-url https://download.pytorch.org/whl/cu130 \
     && uv pip install \
