@@ -8,9 +8,9 @@
 #       -t comfyui-spark:qwen-tts .
 #
 #   docker run --gpus all --ipc=host -p 8188:8188 \
-#       -v /localdisk/comfyui-data/models:/opt/comfyui/models \
-#       -v /localdisk/comfyui-data/output:/opt/comfyui/output \
-#       -v /localdisk/comfyui-data/input:/opt/comfyui/input \
+#       -v ~/comfyui/models:/opt/comfyui/models \
+#       -v ~/comfyui/output:/opt/comfyui/output \
+#       -v ~/comfyui/input:/opt/comfyui/input \
 #       comfyui-spark:qwen-tts
 #
 ARG BASE_IMAGE=vistralis/comfyui:cuda13.0-torch2.10-ubuntu24.04
