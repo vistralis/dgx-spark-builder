@@ -1,55 +1,67 @@
 # ComfyUI + Qwen3-TTS on DGX Spark (Blackwell, SM 121)
 #
-# Layered on top of the published ComfyUI image, adds the
-# flybirdxx/ComfyUI-Qwen-TTS custom node and its dependencies.
+# Uses DarioFT/ComfyUI-Qwen3-TTS extension with qwen-tts installed
+# from source (QwenLM/Qwen3-TTS repo) so we can evaluate upstream PRs.
 #
 # Usage:
 #   docker build -f dockerfiles/comfyui-qwen-tts/Dockerfile \
 #       -t comfyui-spark:qwen-tts .
 #
+#   docker run --gpus all --ipc=host -p 8188:8188 \
+#       -v /localdisk/comfyui-data/models:/opt/comfyui/models \
+#       -v /localdisk/comfyui-data/output:/opt/comfyui/output \
+#       -v /localdisk/comfyui-data/input:/opt/comfyui/input \
+#       comfyui-spark:qwen-tts
+#
 ARG BASE_IMAGE=vistralis/comfyui:cuda13.0-torch2.10-ubuntu24.04
 FROM ${BASE_IMAGE}
 
-# ── Qwen-TTS Python dependencies ─────────────────────────────────
-# Pin transformers==4.57.3 — v5.x has breaking config changes that
-# cause 'pad_token_id' AttributeError. See:
-# https://github.com/flybirdxx/ComfyUI-Qwen-TTS/issues/74
+# ── Python dependencies ───────────────────────────────────────────
+# Install BEFORE qwen-tts so that the base image's custom
+# bitsandbytes (CUDA 13.0) is not overwritten by PyPI.
 RUN uv pip install \
     torchaudio --index-url https://download.pytorch.org/whl/cu130 \
     && uv pip install \
+    accelerate \
     "transformers==4.57.3" \
     librosa \
     soundfile \
-    accelerate \
     einops \
     tiktoken \
     sentencepiece \
     sox \
+    onnxruntime \
+    tensorboard \
     huggingface_hub \
     safetensors \
-    "scipy>=1.11.0"
+    "scipy>=1.11.0" \
+    faster-whisper
 
-# ── Custom nodes (pinned to known-good commits) ──────────────────
-# Qwen3-TTS (flybirdxx) — voice synthesis & cloning
-ARG QWEN_TTS_COMMIT=17207f8b9d1e2e92cb5cf0e487222656757bedf5
-RUN git clone https://github.com/flybirdxx/ComfyUI-Qwen-TTS.git \
-    /opt/comfyui/custom_nodes/ComfyUI-Qwen-TTS \
-    && cd /opt/comfyui/custom_nodes/ComfyUI-Qwen-TTS \
-    && git checkout ${QWEN_TTS_COMMIT}
+# ── Install qwen-tts from source (not PyPI) ──────────────────────
+# Clone the official repo so we can cherry-pick upstream PRs.
+# Use --no-deps to avoid re-installing deps from PyPI which would
+# overwrite our custom bitsandbytes build for CUDA 13.0.
+ARG QWEN_TTS_COMMIT=6cafe5582caea83df269c36b1ce62d953a9cc66b
+RUN git clone https://github.com/QwenLM/Qwen3-TTS.git /tmp/Qwen3-TTS \
+    && cd /tmp/Qwen3-TTS \
+    && git checkout ${QWEN_TTS_COMMIT} \
+    && uv pip install --no-deps -e . \
+    && rm -rf /tmp/Qwen3-TTS/.git
 
-# Custom-Scripts (pythongosssss) — ShowText, MarkdownNote, etc.
-ARG CUSTOM_SCRIPTS_COMMIT=609f3afaa74b2f88ef9ce8d939626065e3247469
-RUN git clone https://github.com/pythongosssss/ComfyUI-Custom-Scripts.git \
-    /opt/comfyui/custom_nodes/ComfyUI-Custom-Scripts \
-    && cd /opt/comfyui/custom_nodes/ComfyUI-Custom-Scripts \
-    && git checkout ${CUSTOM_SCRIPTS_COMMIT}
+# ── ComfyUI custom nodes ─────────────────────────────────────────
+# DarioFT/ComfyUI-Qwen3-TTS — voice synthesis, cloning & fine-tuning
+ARG DARIOFT_COMMIT=17c22adb80a63c1c51bf74549e71a5cf218f4e1b
+RUN git clone https://github.com/DarioFT/ComfyUI-Qwen3-TTS.git \
+    /opt/comfyui/custom_nodes/ComfyUI-Qwen3-TTS \
+    && cd /opt/comfyui/custom_nodes/ComfyUI-Qwen3-TTS \
+    && git checkout ${DARIOFT_COMMIT} \
+    && mkdir -p /opt/comfyui/user/default/workflows \
+    && cp example_workflows/*.json /opt/comfyui/user/default/workflows/
 
-# LayerStyle (chflame163) — PurgeVRAM, layer utilities
-ARG LAYER_STYLE_COMMIT=d94bef1ee5ed3656f5ff1bb2830a4ffd94f40935
-RUN git clone https://github.com/chflame163/ComfyUI_LayerStyle.git \
-    /opt/comfyui/custom_nodes/ComfyUI_LayerStyle \
-    && cd /opt/comfyui/custom_nodes/ComfyUI_LayerStyle \
-    && git checkout ${LAYER_STYLE_COMMIT} \
+# VHS (Video Helper Suite) — audio preview in workflows
+RUN git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git \
+    /opt/comfyui/custom_nodes/ComfyUI-VideoHelperSuite \
+    && cd /opt/comfyui/custom_nodes/ComfyUI-VideoHelperSuite \
     && uv pip install -r requirements.txt
 
 # ── Runtime config ────────────────────────────────────────────────
