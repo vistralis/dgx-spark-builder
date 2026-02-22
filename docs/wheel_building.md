@@ -11,44 +11,39 @@ We build them from source inside Docker containers.
 | `bitsandbytes` | ❌ No CUDA aarch64 | CPU-only aarch64 wheels, need CUDA build |
 | `sageattention` | ❌ No wheels | Our SM 121 fork, not on PyPI |
 | `flash-attn` | ❌ No wheels | No aarch64 CUDA wheels on PyPI |
+| `vllm` | ❌ No wheels | No aarch64 build, need SM 120/121 support |
+| `comfy-kitchen` | ❌ No CUDA aarch64 | PyPI has eager-only; need CUDA+Triton backends |
 
 ## Prerequisites
 
 - Docker with NVIDIA GPU support
-- NGC container access (`nvcr.io/nvidia/pytorch`) or custom base image built
+- Custom base image built (e.g. `cuda13.0-torch2.10-ubuntu24.04`)
 - ~20 GB disk for build containers
 
 ## Build Commands
 
 ```bash
-# Build all wheels (default targets: bitsandbytes, sageattention, flash-attention, onnxruntime)
+# Build all wheels (default base: cuda13.0-torch2.10-ubuntu24.04)
 ./build_wheels.sh
 
-# Build specific wheel
-./build_wheels.sh onnxruntime
+# Build specific wheels
+./build_wheels.sh sageattention flash-attention
 
-# Use custom base image (ABI-matched pip PyTorch)
-BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04 ./build_wheels.sh sageattention
-
-# Use NGC base image
-BASE_IMAGE=nvcr.io/nvidia/pytorch:26.01-py3 ./build_wheels.sh
-
-# Build to staging first
-./build_wheels.sh --staging sageattention
-
-# Promote tested wheels
-./build_wheels.sh --promote pip-torch2.10-cu130
+# Build for PyTorch 2.11 RC
+BASE_IMAGE=cuda13.0-torch2.11rc1-ubuntu24.04 ./build_wheels.sh vllm
 ```
 
 ## Output Layout
 
+Output directory is auto-derived from the base image name:
+
 ```
 wheels/
-├── staging/                  # Temp build output
-├── ngc-25.11-py3/            # Wheels built on NGC 25.11
-├── ngc-26.01-py3/            # Wheels built on NGC 26.01
-└── pip-torch2.10-cu130/      # Wheels built on custom base
+├── torch2.10-cu130/            # PyTorch 2.10 + CUDA 13.0
+└── torch2.11rc1-cu130/         # PyTorch 2.11 RC1 + CUDA 13.0
 ```
+
+See [WHEELS.md](../WHEELS.md) for the full inventory with source links and build commands.
 
 ## ABI Compatibility
 
@@ -58,4 +53,4 @@ wheels/
 
 ---
 
-*Last updated: 2026-02-21*
+*Last updated: 2026-02-22*

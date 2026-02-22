@@ -114,8 +114,6 @@ def main():
                         help="Build exactly this package (overrides enabled flag)")
     parser.add_argument("--include-disabled", action="store_true",
                         help="Also build packages marked enabled: false")
-    parser.add_argument("--staging", action="store_true",
-                        help="Output to staging/ instead of target directory")
     args = parser.parse_args()
 
     config = load_config(Path(args.config))
@@ -171,8 +169,6 @@ def main():
         print(f"║{line}║")
     print(f"╠{'═' * (W - 2)}╣")
     total_line = f"  Total: {len(plan)} build(s), sequential"
-    if args.staging:
-        total_line += " [STAGING MODE]"
     print(f"║{total_line:<{W - 2}}║")
     print(f"╚{'═' * (W - 2)}╝")
 
@@ -184,10 +180,7 @@ def main():
     results = []
 
     for job in plan:
-        if args.staging:
-            image_dir = WHEELS_DIR / "staging"
-        else:
-            image_dir = WHEELS_DIR / job["output_dir"]
+        image_dir = WHEELS_DIR / job["output_dir"]
         image_dir.mkdir(parents=True, exist_ok=True)
 
         print(f"\n{'━' * 52}")

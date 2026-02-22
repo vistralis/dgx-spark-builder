@@ -37,9 +37,8 @@ NGC PyTorch uses a custom C++ ABI. Mixing NGC-built wheels with pip-PyTorch caus
 
 | Output Dir | Base Image | PyTorch |
 |------------|-----------|----------|
-| `ngc-25.11-py3` | `nvcr.io/nvidia/pytorch:25.11-py3` | 2.10.0a0+nv25.11 |
-| `ngc-26.01-py3` | `nvcr.io/nvidia/pytorch:26.01-py3` | 2.10.0a0+nv26.01 |
-| `pip-torch2.10-cu130` | `cuda13.0-torch2.10-ubuntu24.04` | 2.10.0+cu130 (pip) |
+| `torch2.10-cu130` | `cuda13.0-torch2.10-ubuntu24.04` | 2.10.0+cu130 (pip) |
+| `torch2.11rc1-cu130` | `cuda13.0-torch2.11rc1-ubuntu24.04` | 2.11.0rc1+cu130 (pip) |
 
 ## 4. Custom Base Image (`cuda13.0-torch2.10-ubuntu24.04`)
 
@@ -56,14 +55,13 @@ Build matrix: base images × packages. Fields: `tag`, `output_dir`, `local`, `en
 
 ### `build_wheels.sh`
 ```bash
-./build_wheels.sh                              # build all defaults
-./build_wheels.sh --staging sageattention      # build to staging/
-./build_wheels.sh --promote pip-torch2.10-cu130 # promote staging → target
-BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04 ./build_wheels.sh onnxruntime
+./build_wheels.sh                              # build all defaults → wheels/torch2.10-cu130/
+./build_wheels.sh sageattention flash-attention # build specific targets
+BASE_IMAGE=cuda13.0-torch2.11rc1-ubuntu24.04 ./build_wheels.sh vllm  # → wheels/torch2.11rc1-cu130/
 ```
 
 ### `build_artifacts.py`
-Python orchestrator: `--dry-run`, `--filter-image`, `--filter-package`, `--staging`.
+Python orchestrator: `--dry-run`, `--filter-image`, `--filter-package`.
 
 ## 6. Package Build Details
 
@@ -75,7 +73,9 @@ Python orchestrator: `--dry-run`, `--filter-image`, `--filter-package`, `--stagi
 | flash-attention | Dao-AILab/flash-attention | ~20-30 min | ~2% slower than SDPA on GB10 |
 | vllm | vllm-project/vllm | ~15-20 min | v0.16.0, SM 12.0/12.1 |
 | xformers | facebookresearch/xformers | — | Disabled (SM 121 issues) |
-| torchao | pytorch/ao | — | Disabled (SM 121 issues) |
+| torchao | pytorch/ao | ~2 min | v0.16.0 + commit 6ad7c404 |
+| comfy-kitchen | Comfy-Org/comfy-kitchen | ~20s | CUDA + Triton backends |
+| flashinfer | flashinfer-ai/flashinfer | ~3s | v0.6.4 JIT (pure-Python) |
 
 ## 7. Known Issues
 

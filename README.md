@@ -59,13 +59,10 @@ docker build --build-arg TORCH_VERSION=2.11.0 \
     --build-arg TORCH_INDEX=https://download.pytorch.org/whl/test/cu130 \
     -t cuda13.0-torch2.11rc1-ubuntu24.04 dockerfiles/base-cuda-torch-ubuntu/
 
-# 3. Build wheels (to staging first)
-BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04 ./build_wheels.sh --staging sageattention bitsandbytes
+# 3. Build wheels (output → wheels/torch2.10-cu130/)
+./build_wheels.sh sageattention flash-attention
 
-# 4. Verify, then promote
-./build_wheels.sh --promote pip-torch2.10-cu130
-
-# 5. Build an application image
+# 4. Build an application image
 docker build -f dockerfiles/comfyui/Dockerfile .
 ```
 
