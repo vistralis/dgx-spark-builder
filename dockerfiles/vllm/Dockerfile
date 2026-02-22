@@ -37,8 +37,8 @@ ENV CMAKE_ARGS="-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc"
 
 # ── Clone vLLM ────────────────────────────────────────────────────
 WORKDIR /opt
-RUN git clone --depth=1 --branch ${VLLM_VERSION} \
-    https://github.com/vllm-project/vllm.git
+RUN git clone https://github.com/vllm-project/vllm.git \
+    && cd vllm && git checkout ${VLLM_VERSION}
 
 # ── Install build + runtime dependencies ──────────────────────────
 # vLLM 0.16.0 pins torch==2.10.0 which matches our base image,

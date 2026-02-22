@@ -30,8 +30,8 @@ ENV FLASH_ATTENTION_FORCE_CXX11_ABI=FALSE
 ENV FLASH_ATTENTION_SKIP_CUDA_BUILD=FALSE
 
 WORKDIR /opt
-RUN git clone --depth=1 --branch ${FLASH_ATTN_VERSION} \
-    https://github.com/Dao-AILab/flash-attention.git
+RUN git clone https://github.com/Dao-AILab/flash-attention.git \
+    && cd flash-attention && git checkout ${FLASH_ATTN_VERSION}
 
 WORKDIR /opt/flash-attention
 RUN pip wheel . -v --no-deps --no-build-isolation --wheel-dir /wheels
