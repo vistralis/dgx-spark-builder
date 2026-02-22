@@ -14,6 +14,7 @@ ARG BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04
 FROM ${BASE_IMAGE} AS builder
 
 ARG VLLM_VERSION=v0.16.0
+ARG VLLM_REPO=https://github.com/vllm-project/vllm.git
 
 # ── System deps for vLLM build ────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -37,7 +38,7 @@ ENV CMAKE_ARGS="-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc"
 
 # ── Clone vLLM ────────────────────────────────────────────────────
 WORKDIR /opt
-RUN git clone https://github.com/vllm-project/vllm.git \
+RUN git clone ${VLLM_REPO} vllm \
     && cd vllm && git checkout ${VLLM_VERSION}
 
 # ── Install build + runtime dependencies ──────────────────────────

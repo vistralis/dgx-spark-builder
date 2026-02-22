@@ -28,12 +28,12 @@ WORKDIR /opt/comfyui
 RUN uv pip install -r requirements.txt
 
 # ── Pre-built ABI-matched wheels from GitHub release ─────────────
-ARG WHEEL_BASE=https://github.com/vistralis/dgx-spark-builder/releases/download/pip-torch2.10-cu130-v0.1.0
+ARG WHEEL_BASE=https://github.com/vistralis/dgx-spark-builder/releases/download/torch2.10-cu130
 RUN uv pip install \
     ${WHEEL_BASE}/sageattention-2.2.0-cp312-cp312-linux_aarch64.whl \
-    ${WHEEL_BASE}/bitsandbytes-0.50.0.dev0-cp312-cp312-linux_aarch64.whl \
     ${WHEEL_BASE}/flash_attn-2.8.3-cp312-cp312-linux_aarch64.whl \
-    ${WHEEL_BASE}/onnxruntime_gpu-1.25.0-cp312-cp312-linux_aarch64.whl
+    ${WHEEL_BASE}/onnxruntime_gpu-1.25.0-cp312-cp312-linux_aarch64.whl \
+    ${WHEEL_BASE}/comfy_kitchen-0.2.7-cp312-abi3-linux_aarch64.whl
 
 # ── Runtime config ────────────────────────────────────────────────
 EXPOSE 8188
