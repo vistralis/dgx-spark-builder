@@ -18,6 +18,10 @@ RUN git clone https://github.com/bitsandbytes-foundation/bitsandbytes.git \
     && cd bitsandbytes && git checkout ${BNB_VERSION}
 
 WORKDIR /opt/bitsandbytes
+RUN cmake -DCOMPUTE_BACKEND=cuda \
+    -DCOMPUTE_CAPABILITY="120;121" \
+    -S . \
+    && make -j$(nproc)
 RUN pip install --no-cache-dir scikit-build-core setuptools cmake ninja
 RUN pip wheel . --no-build-isolation --no-deps --wheel-dir /wheels
 
