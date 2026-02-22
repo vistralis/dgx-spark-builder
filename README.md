@@ -47,27 +47,36 @@ This repo provides the build infrastructure to make that stack work on the DGX S
 ## Quick Start
 
 ```bash
-# 1. Build the ABI-matched PyTorch base image
-docker build -t cuda13.0-torch2.10-ubuntu24.04 dockerfiles/base/
+# 1. Build the CUDA + TensorRT base (heavy, ~4 min, cached permanently)
+docker build -t cuda13.0-tensorrt-ubuntu24.04 dockerfiles/base-cuda-tensorrt-ubuntu/
 
-# 2. Build wheels (to staging first)
+# 2. Layer PyTorch on top (~45s)
+# Stable:
+docker build --build-arg TORCH_VERSION=2.10.0 \
+    -t cuda13.0-torch2.10-ubuntu24.04 dockerfiles/base-cuda-torch-ubuntu/
+# RC (bleeding edge):
+docker build --build-arg TORCH_VERSION=2.11.0 \
+    --build-arg TORCH_INDEX=https://download.pytorch.org/whl/test/cu130 \
+    -t cuda13.0-torch2.11rc1-ubuntu24.04 dockerfiles/base-cuda-torch-ubuntu/
+
+# 3. Build wheels (to staging first)
 BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04 ./build_wheels.sh --staging sageattention bitsandbytes
 
-# 3. Verify, then promote
+# 4. Verify, then promote
 ./build_wheels.sh --promote pip-torch2.10-cu130
 
-# 4. Build an application image
-docker build -f dockerfiles/comfyui/Dockerfile \
-    --build-context wheels=wheels/pip-torch2.10-cu130 .
+# 5. Build an application image
+docker build -f dockerfiles/comfyui/Dockerfile .
 ```
 
-## Three Base Image Targets
+## Base Image Targets
 
 | Target | Tag | Use Case |
 |--------|-----|----------|
+| **TensorRT base** | `cuda13.0-tensorrt-ubuntu24.04` | Heavy layer: CUDA 13.0 + TensorRT 10.14 + build tools |
+| **Stable PyTorch** | `cuda13.0-torch2.10-ubuntu24.04` | Production: pip-installed PyTorch 2.10 |
+| **RC PyTorch** | `cuda13.0-torch2.11rc1-ubuntu24.04` | Testing: PyTorch 2.11 RC1 from test channel |
 | **NGC PyTorch 25.11** | `nvcr.io/nvidia/pytorch:25.11-py3` | Matches host driver, batteries-included |
-| **NGC PyTorch 26.01** | `nvcr.io/nvidia/pytorch:26.01-py3` | Latest NGC, forward-compat drivers |
-| **Custom pip base** | `cuda13.0-torch2.10-ubuntu24.04` | Lean, ABI-clean pip-installed PyTorch |
 
 > [!WARNING]
 > Wheels built on NGC images are **NOT** compatible with the custom pip base
@@ -84,8 +93,10 @@ dgx-spark-builder/
 ├── build_wheels.sh           # Bash build script
 ├── probe_images.sh           # NGC image probing utility
 ├── dockerfiles/
-│   ├── base/Dockerfile       # ABI-matched PyTorch base image
-│   ├── comfyui/Dockerfile    # ComfyUI image
+│   ├── base-cuda-tensorrt-ubuntu/  # CUDA + TensorRT base (heavy, built once)
+│   ├── base-cuda-torch-ubuntu/     # PyTorch layer (light, ~45s per version)
+│   ├── comfyui/Dockerfile          # ComfyUI image
+│   ├── comfyui-qwen-tts/           # Qwen3-TTS voice synthesis + fine-tuning
 │   ├── onnxruntime/Dockerfile
 │   ├── bitsandbytes/Dockerfile
 │   ├── sageattention/Dockerfile
