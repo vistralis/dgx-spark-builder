@@ -24,3 +24,10 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# Local development / reference code
+references/
+dockerfiles/*/ComfyUI-*/
+datasets/
+*.wav
+*.mp3
