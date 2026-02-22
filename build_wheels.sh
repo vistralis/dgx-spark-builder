@@ -1,19 +1,15 @@
 #!/usr/bin/env bash
 # Build custom CUDA-compiled wheels for DGX SPARK GB10 (Blackwell, SM 121)
-# Wheels exported via docker build --output, organized by base image ABI.
+# Wheels exported via docker build --output, organized by torch+cuda version.
 #
 # Usage:
 #   ./build_wheels.sh                           # build all with defaults
 #   ./build_wheels.sh onnxruntime               # build one
 #   ./build_wheels.sh onnxruntime bitsandbytes  # build multiple
 #
-# Staging mode (build to staging/, then promote):
-#   ./build_wheels.sh --staging sageattention   # build to staging/
-#   ./build_wheels.sh --promote pip-torch2.10-cu130 # move staging → target
-#
-# Base image (determines PyTorch + CUDA version):
-#   BASE_IMAGE=nvcr.io/nvidia/pytorch:26.01-py3 ./build_wheels.sh
-#   BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04 ./build_wheels.sh
+# Base image (determines output directory):
+#   BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04 ./build_wheels.sh   # → wheels/torch2.10-cu130/
+#   BASE_IMAGE=cuda13.0-torch2.11rc1-ubuntu24.04 ./build_wheels.sh # → wheels/torch2.11rc1-cu130/
 #
 # Version pinning:
 #   ORT_VERSION=v1.21.0 ./build_wheels.sh onnxruntime
@@ -24,12 +20,10 @@
 #   TORCHAO_VERSION=v0.14.0 ./build_wheels.sh torchao
 #   VLLM_VERSION=v0.16.0 ./build_wheels.sh vllm
 #
-# Output layout:
+# Output layout (matches GitHub release tags):
 #   wheels/
-#   ├── staging/                    # temp build output (--staging)
-#   ├── ngc-25.11-py3/              # wheels built on NGC 25.11
-#   ├── ngc-26.01-py3/              # wheels built on NGC 26.01
-#   └── pip-torch2.10-cu130/        # wheels built on custom base
+#   ├── torch2.10-cu130/            # PyTorch 2.10 + CUDA 13.0
+#   └── torch2.11rc1-cu130/         # PyTorch 2.11 RC1 + CUDA 13.0
 
 set -euo pipefail
 
@@ -38,73 +32,31 @@ PROJECT_DIR="${SCRIPT_DIR}"
 WHEELS_DIR="${PROJECT_DIR}/wheels"
 DOCKERFILES_DIR="${PROJECT_DIR}/dockerfiles"
 
-# Parse flags
-STAGING=false
-PROMOTE=""
-POSITIONAL=()
-for arg in "$@"; do
-    case $arg in
-        --staging) STAGING=true ;;
-        --promote) PROMOTE="__NEXT__" ;;
-        *)
-            if [[ "$PROMOTE" == "__NEXT__" ]]; then
-                PROMOTE="$arg"
-            else
-                POSITIONAL+=("$arg")
-            fi
-            ;;
-    esac
-done
-if [ ${#POSITIONAL[@]} -gt 0 ]; then
-    set -- "${POSITIONAL[@]}"
-else
-    set --
-fi
-
-# ── Promote mode ──────────────────────────────────────────────────
-if [[ -n "$PROMOTE" && "$PROMOTE" != "__NEXT__" ]]; then
-    TARGET_DIR="${WHEELS_DIR}/${PROMOTE}"
-    STAGING_DIR="${WHEELS_DIR}/staging"
-
-    echo "  Promoting staging/ → ${PROMOTE}/"
-    mkdir -p "${TARGET_DIR}"
-
-    count=0
-    for whl in "${STAGING_DIR}"/*.whl; do
-        [ -f "$whl" ] || continue
-        mv "$whl" "${TARGET_DIR}/"
-        echo "    ✓ $(basename "$whl")"
-        ((count++))
-    done
-
-    # Clean Docker filesystem artifacts that may have leaked
-    for junk in .dockerenv dev etc proc sys; do
-        rm -rf "${STAGING_DIR:?}/${junk}"
-    done
-
-    echo "  Promoted ${count} wheel(s) to ${PROMOTE}/"
-    exit 0
-fi
+# Parse arguments (all positional — target names)
+set -- "$@"
 
 # Configurable base image
-BASE_IMAGE="${BASE_IMAGE:-nvcr.io/nvidia/pytorch:25.11-py3}"
+BASE_IMAGE="${BASE_IMAGE:-cuda13.0-torch2.10-ubuntu24.04}"
 
-# Extract the tag portion for output directory naming
-# Handle both "nvcr.io/nvidia/pytorch:25.11-py3" → "25.11-py3"
-# and local names like "cuda13.0-torch2.10-ubuntu24.04"
-if [[ "$BASE_IMAGE" == *":"* ]]; then
-    IMAGE_TAG="${BASE_IMAGE##*:}"
-else
-    IMAGE_TAG="${BASE_IMAGE}"
-fi
+# Derive output directory from base image name
+# cuda13.0-torch2.10-ubuntu24.04 → torch2.10-cu130
+# cuda13.0-torch2.11rc1-ubuntu24.04 → torch2.11rc1-cu130
+derive_output_dir() {
+    local img="$1"
+    # Strip registry prefix if present
+    [[ "$img" == *":"* ]] && img="${img##*:}"
+    # Try to extract torch version and cuda version
+    local torch_ver cuda_ver
+    torch_ver=$(echo "$img" | grep -oP 'torch\K[0-9a-z.]+' || echo "")
+    cuda_ver=$(echo "$img" | grep -oP 'cuda\K[0-9.]+' || echo "")
+    if [[ -n "$torch_ver" && -n "$cuda_ver" ]]; then
+        echo "torch${torch_ver}-cu${cuda_ver//.}"
+    else
+        echo "$img"
+    fi
+}
 
-# Map IMAGE_TAG to output directory
-case "$IMAGE_TAG" in
-    25.11-py3)                        OUTPUT_DIR="ngc-25.11-py3" ;;
-    26.01-py3)                        OUTPUT_DIR="ngc-26.01-py3" ;;
-    cuda13.0-torch2.10-ubuntu24.04)   OUTPUT_DIR="pip-torch2.10-cu130" ;;
-    *)                                OUTPUT_DIR="${IMAGE_TAG}" ;;
-esac
+OUTPUT_DIR=$(derive_output_dir "$BASE_IMAGE")
 
 # Default versions (override via env vars)
 ORT_VERSION="${ORT_VERSION:-main}"
@@ -115,6 +67,8 @@ BNB_VERSION="${BNB_VERSION:-main}"
 SAGE_VERSION="${SAGE_VERSION:-blackwell-sm121}"
 FLASH_ATTN_VERSION="${FLASH_ATTN_VERSION:-v2.8.3}"
 VLLM_VERSION="${VLLM_VERSION:-v0.16.0}"
+COMFY_KITCHEN_VERSION="${COMFY_KITCHEN_VERSION:-v0.2.7}"
+FLASHINFER_VERSION="${FLASHINFER_VERSION:-v0.6.4}"
 
 # ── Detect CUDA version from the base image ──────────────────────────
 detect_cuda_version() {
@@ -129,12 +83,7 @@ detect_cuda_version() {
 }
 
 # Output directory
-if $STAGING; then
-    IMAGE_DIR="${WHEELS_DIR}/staging"
-    echo "  *** STAGING MODE — wheels → ${IMAGE_DIR}/"
-else
-    IMAGE_DIR="${WHEELS_DIR}/${OUTPUT_DIR}"
-fi
+IMAGE_DIR="${WHEELS_DIR}/${OUTPUT_DIR}"
 
 # Dynamic-width box based on content
 _hdr_lines=(
@@ -142,9 +91,7 @@ _hdr_lines=(
     "Output dir: ${OUTPUT_DIR}"
     "Output:     ${IMAGE_DIR}/"
 )
-if $STAGING; then
-    _hdr_lines+=("Mode:       STAGING")
-fi
+
 _title="DGX Spark Builder — Wheel Build"
 _maxlen=${#_title}
 for _l in "${_hdr_lines[@]}"; do
@@ -209,6 +156,8 @@ declare -A WHEEL_MAP=(
     [sageattention]="SAGE_VERSION:${SAGE_VERSION}"
     [flash-attention]="FLASH_ATTN_VERSION:${FLASH_ATTN_VERSION}"
     [vllm]="VLLM_VERSION:${VLLM_VERSION}"
+    [comfy-kitchen]="COMFY_KITCHEN_VERSION:${COMFY_KITCHEN_VERSION}"
+    [flashinfer]="FLASHINFER_VERSION:${FLASHINFER_VERSION}"
 )
 
 # Build order: lighter builds first, onnxruntime last (longest)
@@ -237,6 +186,3 @@ echo ""
 echo "  Wheels:"
 ls -lh "${IMAGE_DIR}"/*.whl 2>/dev/null || echo "  (none)"
 echo ""
-if $STAGING; then
-    echo "  Next: ./build_wheels.sh --promote ${OUTPUT_DIR}"
-fi
