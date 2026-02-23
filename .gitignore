@@ -31,3 +31,4 @@ dockerfiles/*/ComfyUI-*/
 datasets/
 *.wav
 *.mp3
+vllm/
