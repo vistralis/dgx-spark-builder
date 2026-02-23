@@ -32,7 +32,7 @@ Base image: `cuda13.0-torch2.11rc1-ubuntu24.04` (PyTorch 2.11.0 RC1 from test in
 
 | Wheel | Size | Source | Notes |
 |-------|------|--------|-------|
-| `vllm-0.16.0+cu130-cp312-cp312-linux_aarch64.whl` | 504 MB | [atalman/vllm@0b99aaab](https://github.com/atalman/vllm/commit/0b99aaab5bf26be56a30681a29cc5894b975a9e3) ([PR #34644](https://github.com/vllm-project/vllm/pull/34644)) | torch 2.11 compatibility patches; FA2+FA3 |
+| `vllm-0.16.0+cu130-cp312-cp312-linux_aarch64.whl` | 504 MB | [vistralis/vllm@fix/dsv3-sm120-torch211](https://github.com/vistralis/vllm/tree/fix/dsv3-sm120-torch211) | torch 2.11 patches + SM 12.x dsv3 fix |
 | `flash_attn-2.8.3-cp312-cp312-linux_aarch64.whl` | 232 MB | [Dao-AILab/flash-attention@v2.8.3](https://github.com/Dao-AILab/flash-attention/tree/v2.8.3) | SM 80/90/100/120, ~85 min build |
 | `onnxruntime_gpu-1.25.0-cp312-cp312-linux_aarch64.whl` | 55 MB | [microsoft/onnxruntime@v1.25.0](https://github.com/microsoft/onnxruntime/tree/v1.25.0) | CUDA EP + TensorRT EP |
 | `sageattention-2.2.0-cp312-cp312-linux_aarch64.whl` | 15 MB | [vistralis/SageAttention](https://github.com/vistralis/SageAttention) | Our SM 121 fork, INT8/FP8 quantized attention |
