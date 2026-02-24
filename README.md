@@ -1,113 +1,86 @@
 # DGX Spark Builder
 
-Build infrastructure for **NVIDIA DGX Spark GB10** (Blackwell, SM 121, aarch64) — providing custom CUDA wheel builds and Docker images for physical AI, analytics, robotics, and autonomous vehicle workloads.
+Build infrastructure for **NVIDIA DGX Spark GB10** — custom CUDA wheels and Docker images for the aarch64 + Blackwell (SM 121) platform.
 
-## Mission
-
-We develop, train, finetune, optimize, and deploy ML models for **physical AI** applications:
-- Robotics perception and planning
-- Autonomous vehicle (AV) analytics
-- Real-time sensor fusion and inference
-- Edge-to-cloud model deployment
-
-Our core stack: **PyTorch → ModelOpt → TensorRT → Triton Inference Server**
-
-This repo provides the build infrastructure to make that stack work on the DGX Spark’s unique aarch64 + Blackwell (SM 121) platform, where most ML ecosystem packages lack prebuilt wheels.
-
-## Hardware Target
+## Hardware
 
 | Spec | Value |
 |------|-------|
-| GPU | NVIDIA GB10 (Blackwell) |
-| Compute Capability | SM 12.0 / 12.1 |
-| CPU Architecture | aarch64 (Grace) |
+| GPU | NVIDIA GB10 (Blackwell, SM 12.0 / 12.1) |
+| CPU | Grace (aarch64) |
 | CUDA | 13.0 / 13.1 |
-| OS | Ubuntu 24.04 |
-| Memory | 128 GB unified (VMM: ~160 GB addressable) |
+| Memory | 128 GB unified (VMM: ~160 GB) |
+| OS | Ubuntu 24.04, Python 3.12 |
 
-## What This Repo Does
+Most ML packages lack prebuilt aarch64 + CUDA 13.0 wheels. This repo builds them from source.
 
-1. **Builds custom wheels** for packages with no prebuilt aarch64+CUDA wheels on PyPI
-2. **Provides Dockerfiles** for application images (model serving, generation pipelines, etc.)
-3. **Organizes wheels by ABI target** to ensure correct binary compatibility
-4. **Publishes wheels via GitHub Releases** for easy consumption across projects
+## Wheel Releases
 
-## Custom Wheels
+Pre-built wheels published as [GitHub Releases](https://github.com/vistralis/dgx-spark-builder/releases):
 
-| Package | Why Custom Build? |
-|---------|-------------------|
-| `onnxruntime-gpu` | No aarch64 CUDA wheels on PyPI |
-| `bitsandbytes` | CPU-only aarch64 wheels, need CUDA build |
-| `sageattention` | Our SM 121 fork with INT8/FP8 quantized attention |
-| `flash-attn` | No aarch64 CUDA wheels on PyPI |
-| `vllm` | No aarch64 build, need SM 120/121 support |
-| `xformers` | No aarch64 wheels (currently disabled — SM 121 issues) |
-| `torchao` | No aarch64 wheels (currently disabled — SM 121 issues) |
+| Release | PyTorch | Packages |
+|---------|---------|----------|
+| [`torch2.10-cu130`](https://github.com/vistralis/dgx-spark-builder/releases/tag/torch2.10-cu130) | 2.10.0 (stable) | vllm, sgl-kernel, sglang, flash-attn, flashinfer, torchao, bitsandbytes, sageattention, onnxruntime-gpu, comfy-kitchen |
+| [`torch2.11rc1-cu130`](https://github.com/vistralis/dgx-spark-builder/releases/tag/torch2.11rc1-cu130) | 2.11.0 RC1 | vllm, sgl-kernel, sglang, flash-attn, flashinfer, torchao, bitsandbytes, sageattention, onnxruntime-gpu, comfy-kitchen |
+
+> [!IMPORTANT]
+> Wheels are NOT compatible with NGC container PyTorch (different C++ ABI).
+> See [docs/images.md](docs/images.md) for details.
+
+📦 [Full wheel inventory](docs/wheels.md) · 📋 [Package support analysis](docs/packages/)
 
 ## Quick Start
 
 ```bash
-# 1. Build the CUDA + TensorRT base (heavy, ~4 min, cached permanently)
-docker build -t cuda13.0-tensorrt-ubuntu24.04 dockerfiles/base-cuda-tensorrt-ubuntu/
-
-# 2. Layer PyTorch on top (~45s)
-# Stable:
+# 1. Build base images
+docker build -t cuda13.0-tensorrt-ubuntu24.04 dockerfiles/images/cuda-tensorrt/
 docker build --build-arg TORCH_VERSION=2.10.0 \
-    -t cuda13.0-torch2.10-ubuntu24.04 dockerfiles/base-cuda-torch-ubuntu/
-# RC (bleeding edge):
-docker build --build-arg TORCH_VERSION=2.11.0 \
-    --build-arg TORCH_INDEX=https://download.pytorch.org/whl/test/cu130 \
-    -t cuda13.0-torch2.11rc1-ubuntu24.04 dockerfiles/base-cuda-torch-ubuntu/
+    -t cuda13.0-torch2.10-ubuntu24.04 dockerfiles/images/cuda-torch/
 
-# 3. Build wheels (output → wheels/torch2.10-cu130/)
-./build_wheels.sh sageattention flash-attention
+# 2. Build a wheel
+docker build --build-arg BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04 \
+    --output type=local,dest=wheels/torch2.10-cu130/ \
+    dockerfiles/builders/flash-attention/
 
-# 4. Build an application image
-docker build -f dockerfiles/comfyui/Dockerfile .
+# 3. Or use the build script
+scripts/build_wheels.sh flash-attention sageattention
+
+# 4. Install from release
+pip install --find-links https://github.com/vistralis/dgx-spark-builder/releases/download/torch2.10-cu130/ \
+    vllm flash-attn sageattention
 ```
 
-## Base Image Targets
-
-| Target | Tag | Use Case |
-|--------|-----|----------|
-| **TensorRT base** | `cuda13.0-tensorrt-ubuntu24.04` | Heavy layer: CUDA 13.0 + TensorRT 10.14 + build tools |
-| **Stable PyTorch** | `cuda13.0-torch2.10-ubuntu24.04` | Production: pip-installed PyTorch 2.10 |
-| **RC PyTorch** | `cuda13.0-torch2.11rc1-ubuntu24.04` | Testing: PyTorch 2.11 RC1 from test channel |
-| **NGC PyTorch 25.11** | `nvcr.io/nvidia/pytorch:25.11-py3` | Matches host driver, batteries-included |
-
-> [!WARNING]
-> Wheels built on NGC images are **NOT** compatible with the custom pip base
-> and vice versa. NGC ships a custom PyTorch build with different C++ ABI.
-
-## Project Structure
+## Repo Structure
 
 ```
-dgx-spark-builder/
-├── README.md                 # This file
-├── CONTEXT.md                # Seed context for AI agents
-├── artifacts.yaml            # Build matrix config
-├── build_artifacts.py        # Python build orchestrator
-├── build_wheels.sh           # Bash build script
-├── probe_images.sh           # NGC image probing utility
-├── dockerfiles/
-│   ├── base-cuda-tensorrt-ubuntu/  # CUDA + TensorRT base (heavy, built once)
-│   ├── base-cuda-torch-ubuntu/     # PyTorch layer (light, ~45s per version)
-│   ├── comfyui/Dockerfile          # ComfyUI image
-│   ├── comfyui-qwen-tts/           # Qwen3-TTS voice synthesis + fine-tuning
-│   ├── onnxruntime/Dockerfile
-│   ├── bitsandbytes/Dockerfile
-│   ├── sageattention/Dockerfile
-│   ├── flash-attention/Dockerfile
-│   ├── xformers/Dockerfile
-│   ├── torchao/Dockerfile
-│   └── vllm/Dockerfile
-├── docs/
-│   ├── ngc_images.md         # NGC container inventory
-│   └── wheel_building.md     # Wheel building guide
-└── wheels/                   # Build output (gitignored, published as GH Releases)
+dockerfiles/
+├── images/                    # Base + application images
+│   ├── cuda-tensorrt/         #   CUDA 13.0 + TensorRT + build tools
+│   ├── cuda-torch/            #   + PyTorch (parameterized version)
+│   ├── comfyui/               #   ComfyUI application
+│   └── comfyui-qwen-tts/      #   ComfyUI + Qwen3-TTS voice synthesis
+│
+└── builders/                  # Wheel builders (output = .whl files)
+    ├── vllm/                  sglang/              flash-attention/
+    ├── flashinfer/            torchao/             bitsandbytes/
+    ├── sageattention/         onnxruntime/         comfy-kitchen/
+    └── xformers/
+
+scripts/                       # build_wheels.sh, build_artifacts.py, probe_images.sh
+docs/                          # Detailed documentation
 ```
 
-## Related Projects
+## Documentation
 
-- **[vistralis/zimage-spark](https://github.com/vistralis/zimage-spark)** — Diffusion pipeline (consumes wheels from this repo)
-- **[vistralis/SageAttention](https://github.com/vistralis/SageAttention)** — SM 121 fork of SageAttention
+| Doc | Contents |
+|-----|----------|
+| [wheels.md](docs/wheels.md) | Full wheel inventory per release with sources and sizes |
+| [images.md](docs/images.md) | Docker image types: base vs builder vs application |
+| [packages/](docs/packages/) | Per-package DGX Spark support analysis and build notes |
+| [building.md](docs/building.md) | How to build wheels from source |
+| [ngc_images.md](docs/ngc_images.md) | NGC container reference |
+
+## Related
+
+- [vistralis/SageAttention](https://github.com/vistralis/SageAttention) — SM 121 fork
+- [vistralis/vllm](https://github.com/vistralis/vllm) — dsv3 SM 12.x fix

@@ -3,13 +3,13 @@
 # Wheels exported via docker build --output, organized by torch+cuda version.
 #
 # Usage:
-#   ./build_wheels.sh                           # build all with defaults
-#   ./build_wheels.sh onnxruntime               # build one
-#   ./build_wheels.sh onnxruntime bitsandbytes  # build multiple
+#   scripts/build_wheels.sh                      # build all with defaults
+#   scripts/build_wheels.sh onnxruntime          # build one
+#   scripts/build_wheels.sh onnxruntime bitsandbytes  # build multiple
 #
 # Base image (determines output directory):
-#   BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04 ./build_wheels.sh   # → wheels/torch2.10-cu130/
-#   BASE_IMAGE=cuda13.0-torch2.11rc1-ubuntu24.04 ./build_wheels.sh # → wheels/torch2.11rc1-cu130/
+#   BASE_IMAGE=cuda13.0-torch2.10-ubuntu24.04 scripts/build_wheels.sh   # → wheels/torch2.10-cu130/
+#   BASE_IMAGE=cuda13.0-torch2.11rc1-ubuntu24.04 scripts/build_wheels.sh # → wheels/torch2.11rc1-cu130/
 #
 # Version pinning:
 #   ORT_VERSION=v1.21.0 ./build_wheels.sh onnxruntime
@@ -28,9 +28,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="${SCRIPT_DIR}"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 WHEELS_DIR="${PROJECT_DIR}/wheels"
-DOCKERFILES_DIR="${PROJECT_DIR}/dockerfiles"
+DOCKERFILES_DIR="${PROJECT_DIR}/dockerfiles/builders"
 
 # Parse arguments (all positional — target names)
 set -- "$@"

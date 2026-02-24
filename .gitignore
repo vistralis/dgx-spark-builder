@@ -25,10 +25,13 @@ Thumbs.db
 logs/
 *.log
 
-# Local development / reference code
+# Reference code and docs (local clones, not committed)
 references/
-dockerfiles/*/ComfyUI-*/
+
+# ComfyUI extension source bundles (large, built in Docker context)
+dockerfiles/images/comfyui-qwen-tts/ComfyUI-Qwen-TTS/
+
+# Local datasets and media
 datasets/
 *.wav
 *.mp3
-vllm/
