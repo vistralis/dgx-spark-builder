@@ -9,7 +9,7 @@ Foundation layers reused by builders and applications.
 | Image | Tag | Contents |
 |-------|-----|----------|
 | **cuda-tensorrt** | `cuda13.0-tensorrt-ubuntu24.04` | CUDA 13.0 + cuDNN + TensorRT 10.14 + cmake, ninja, git, uv |
-| **cuda-torch** | `cuda13.0-torch{VER}-ubuntu24.04` | + PyTorch from pip (parameterized version) |
+| **cuda-torch** | `cuda13.0-torch{VER}-ubuntu24.04` | + PyTorch + torchvision + torchaudio (parameterized version) |
 
 ```bash
 # Build once, reused by everything else
@@ -21,6 +21,8 @@ docker build --build-arg TORCH_VERSION=2.10.0 \
 
 # RC PyTorch (bleeding edge)
 docker build --build-arg TORCH_VERSION=2.11.0 \
+    --build-arg TORCHVISION_VERSION=0.26.0 \
+    --build-arg TORCHAUDIO_VERSION=2.11.0 \
     --build-arg TORCH_INDEX=https://download.pytorch.org/whl/test/cu130 \
     -t cuda13.0-torch2.11rc1-ubuntu24.04 dockerfiles/images/cuda-torch/
 ```
@@ -63,15 +65,32 @@ docker rm "$cid"
 
 ## Application Images (`dockerfiles/images/`)
 
-Deployable containers for running services.
+Deployable containers for running services. Published to Docker Hub under `vistralis/`.
 
-| Image | Purpose |
-|-------|---------|
-| `comfyui` | ComfyUI node-based generation pipeline |
-| `comfyui-qwen-tts` | ComfyUI + Qwen3-TTS voice synthesis + fine-tuning |
+| Image | Docker Hub | Ports | Purpose |
+|-------|-----------|-------|---------|
+| `vllm` | `vistralis/vllm:torch2.11-cu130` | 8000 | vLLM OpenAI-compatible API server |
+| `sglang` | `vistralis/sglang:torch2.11-cu130` | 30000 | SGLang serving with RadixAttention |
+| `edge-ai` | `vistralis/edge-ai:torch2.11-cu130` | 8000, 8888, 30000 | All wheels + ML stack (interactive) |
+| `comfyui` | — | 8188 | ComfyUI node-based generation pipeline |
+| `comfyui-qwen-tts` | — | 8188 | ComfyUI + Qwen3-TTS voice synthesis |
 
 ```bash
-docker build -f dockerfiles/images/comfyui/Dockerfile .
+# Build serving images
+docker build -t vistralis/vllm:torch2.11-cu130 dockerfiles/images/vllm/
+docker build -t vistralis/sglang:torch2.11-cu130 dockerfiles/images/sglang/
+docker build -t vistralis/edge-ai:torch2.11-cu130 dockerfiles/images/edge-ai/
+
+# Run vLLM (user provides --model)
+docker run --gpus all -p 8000:8000 vistralis/vllm:torch2.11-cu130 \
+    --model Qwen/Qwen3.5-35B-A3B --dtype auto
+
+# Run SGLang (user provides --model-path)
+docker run --gpus all -p 30000:30000 vistralis/sglang:torch2.11-cu130 \
+    --model-path Qwen/Qwen3.5-35B-A3B --dtype auto
+
+# Run edge-ai (interactive)
+docker run --gpus all -it -p 8888:8888 vistralis/edge-ai:torch2.11-cu130
 ```
 
 ## ABI Compatibility
